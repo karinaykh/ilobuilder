@@ -1,0 +1,326 @@
+import React, { useState, useRef, ChangeEvent } from 'react';
+import { HelpCircle, RefreshCw, Info, Copy, CheckCircle, Wand2 } from 'lucide-react';
+
+interface ILO {
+  audience: string;
+  behavior: {
+    level: string;
+    verb: string;
+    task: string;
+  };
+  condition: string;
+  degree: string;
+}
+
+type VerbLevel = 'Remembering' | 'Understanding' | 'Applying' | 'Analyzing' | 'Evaluating' | 'Creating';
+
+const EnhancedILOBuilderWithAI: React.FC = () => {
+  const [step, setStep] = useState(0);
+  const [ilo, setIlo] = useState<ILO>({
+    audience: '',
+    behavior: { level: '', verb: '', task: '' },
+    condition: '',
+    degree: ''
+  });
+  const [showTips, setShowTips] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [enhancedILO, setEnhancedILO] = useState('');
+  const iloRef = useRef<HTMLDivElement>(null);
+
+  const steps = ['Audience', 'Behavior', 'Condition', 'Degree', 'Review'];
+  const levels: VerbLevel[] = ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
+  const verbs: Record<VerbLevel, string[]> = {
+    Remembering: ['Define', 'List', 'Recall', 'Identify', 'Name', 'Recognize'],
+    Understanding: ['Explain', 'Describe', 'Discuss', 'Interpret', 'Summarize', 'Classify'],
+    Applying: ['Apply', 'Demonstrate', 'Use', 'Solve', 'Implement', 'Execute'],
+    Analyzing: ['Analyze', 'Compare', 'Differentiate', 'Examine', 'Categorize', 'Contrast'],
+    Evaluating: ['Evaluate', 'Judge', 'Justify', 'Critique', 'Assess', 'Recommend'],
+    Creating: ['Create', 'Design', 'Develop', 'Formulate', 'Propose', 'Construct']
+  };
+
+  const handleInputChange = (field: keyof ILO, value: string) => {
+    setIlo(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBehaviorChange = (field: keyof ILO['behavior'], value: string) => {
+    setIlo(prev => ({ 
+      ...prev, 
+      behavior: { 
+        ...prev.behavior, 
+        [field]: value,
+        verb: field === 'level' ? '' : prev.behavior.verb 
+      } 
+    }));
+  };
+
+  const conditionExamples = [
+    "Using common software tools",
+    "Given a set of mathematical problems",
+    "When presented with a business case study",
+    "Using laboratory equipment",
+    "In a group project setting",
+    "With access to relevant research papers"
+  ];
+
+  const degreeExamples = [
+    "with at least 90% accuracy",
+    "creating at least 3 valid solutions",
+    "meeting all criteria on the provided rubric",
+    "within a 50-minute tutorial session",
+    "receiving positive peer feedback on clarity",
+    "demonstrating proficiency in at least 4 out of 5 attempts"
+  ];
+
+  const tips: { [key: string]: string } = {
+    Audience: "Specify the course code and be clear about the students' level. For example, 'CHEM1010 students' clearly identifies first-year chemistry students.",
+    Behavior: "Choose a verb that's observable and measurable. The verb should align with the chosen cognitive level from Bloom's Taxonomy.",
+    Condition: "Describe the specific circumstances or context in which the learning will be demonstrated. This often includes tools, resources, or settings.",
+    Degree: "Specify clear, achievable criteria that define successful performance. This could include accuracy, speed, quality, or quantity metrics.",
+    Review: "Ensure your ILO is SMART: Specific, Measurable, Achievable, Relevant, and Time-bound. Each component should contribute to a clear, actionable learning outcome."
+  };
+
+  const renderStepContent = () => {
+    const commonClasses = "w-full p-2 border rounded mb-2 focus:border-blue-500 focus:ring focus:ring-blue-200";
+    
+    switch (step) {
+      case 0:
+        return (
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Audience (A)</h3>
+            <p className="mb-2">Specify the students you'll be teaching, including the course code.</p>
+            <input
+              type="text"
+              value={ilo.audience}
+              onChange={(e) => handleInputChange('audience', e.target.value)}
+              placeholder="e.g., CHEM1010 students"
+              className={commonClasses}
+              aria-label="Audience description"
+            />
+          </div>
+        );
+      case 1:
+        return (
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Behavior (B)</h3>
+            <p className="mb-2">Select the cognitive level based on Bloom's Taxonomy, then choose a specific verb that describes what the students should be able to do.</p>
+            <select
+              value={ilo.behavior.level}
+              onChange={(e) => handleBehaviorChange('level', e.target.value)}
+              className={commonClasses}
+              aria-label="Cognitive level"
+            >
+              <option value="">Select a cognitive level</option>
+              {levels.map(level => (
+                <option key={level} value={level}>{level}</option>
+              ))}
+            </select>
+            {ilo.behavior.level && (
+              <select
+                value={ilo.behavior.verb}
+                onChange={(e) => handleBehaviorChange('verb', e.target.value)}
+                className={commonClasses}
+                aria-label="Action verb"
+              >
+                <option value="">Select a verb</option>
+                {verbs[ilo.behavior.level as VerbLevel].map(verb => (
+                  <option key={verb} value={verb}>{verb}</option>
+                ))}
+              </select>
+            )}
+            <input
+              type="text"
+              value={ilo.behavior.task}
+              onChange={(e) => handleBehaviorChange('task', e.target.value)}
+              placeholder="e.g., the principles of stoichiometry in chemical reactions"
+              className={commonClasses}
+              aria-label="Specific task or knowledge"
+            />
+          </div>
+        );
+      case 2:
+        return (
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Condition (C)</h3>
+            <p className="mb-2">Describe the conditions under which the behavior should be performed. Consider tools, resources, or contexts relevant to the tutorial.</p>
+            <input
+              type="text"
+              value={ilo.condition}
+              onChange={(e) => handleInputChange('condition', e.target.value)}
+              placeholder="e.g., Using common software tools"
+              className={commonClasses}
+              aria-label="Condition description"
+            />
+            <div className="text-sm text-gray-600">
+              <p className="font-semibold">Examples:</p>
+              <ul className="list-disc pl-5">
+                {conditionExamples.map((example, index) => (
+                  <li key={index}>{example}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Degree (D)</h3>
+            <p className="mb-2">Specify the criteria for acceptable performance. This could involve accuracy, time limits, or quality standards.</p>
+            <input
+              type="text"
+              value={ilo.degree}
+              onChange={(e) => handleInputChange('degree', e.target.value)}
+              placeholder="e.g., with at least 90% accuracy"
+              className={commonClasses}
+              aria-label="Degree of performance"
+            />
+            <div className="text-sm text-gray-600">
+              <p className="font-semibold">Examples:</p>
+              <ul className="list-disc pl-5">
+                {degreeExamples.map((example, index) => (
+                  <li key={index}>{example}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      case 4:
+        return (
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Review Your ILO</h3>
+            <p className="mb-4">Here's your complete Intended Learning Outcome:</p>
+            <div className="p-4 bg-gray-100 rounded mb-4" ref={iloRef}>
+              {renderILO()}
+            </div>
+            <div className="flex space-x-2 mb-4">
+              <button 
+                onClick={copyToClipboard} 
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                {copied ? <CheckCircle size={18} className="mr-2" /> : <Copy size={18} className="mr-2" />}
+                {copied ? 'Copied!' : 'Copy ILO'}
+              </button>
+              <button 
+                onClick={enhanceWithAI} 
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                <Wand2 size={18} className="mr-2" />
+                Enhance with AI
+              </button>
+            </div>
+            {enhancedILO && (
+              <div>
+                <h4 className="font-semibold mb-2">AI-Enhanced ILO:</h4>
+                <p className="p-4 bg-green-50 rounded">{enhancedILO}</p>
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderILO = () => {
+    return `${ilo.audience} will be able to ${ilo.behavior.verb} ${ilo.behavior.task} ${ilo.condition} ${ilo.degree}`.trim();
+  };
+
+  const copyToClipboard = () => {
+    if (iloRef.current) {
+      navigator.clipboard.writeText(iloRef.current.innerText || '').then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
+  const enhanceWithAI = () => {
+    // Placeholder for AI enhancement - replace with actual API call
+    const currentILO = renderILO();
+    setEnhancedILO(`Enhanced version: ${currentILO} (This would be replaced with actual AI-generated content)`);
+  };
+
+  const restart = () => {
+    setStep(0);
+    setIlo({
+      audience: '',
+      behavior: { level: '', verb: '', task: '' },
+      condition: '',
+      degree: ''
+    });
+    setEnhancedILO('');
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Tutorial ILO Builder (ABCD Model)</h2>
+        <div>
+          <button onClick={() => setShowTips(!showTips)} className="mr-2 text-blue-600 hover:text-blue-800">
+            <Info size={18} />
+          </button>
+          <button onClick={restart} className="flex items-center text-blue-600 hover:text-blue-800">
+            <RefreshCw size={18} className="mr-1" /> Restart
+          </button>
+        </div>
+      </div>
+      
+      <p className="mb-4 text-gray-600">
+        Create clear and effective Intended Learning Outcomes (ILOs) for your undergraduate tutorials using the ABCD model: 
+        Audience, Behavior, Condition, and Degree. This tool is based on Bloom's Taxonomy to help you craft precise and measurable learning outcomes.
+      </p>
+
+      {showTips && (
+        <div className="mb-4 p-4 bg-blue-50 rounded">
+          <h3 className="font-bold mb-2">Tips for this step:</h3>
+          <p>{tips[steps[step] as keyof typeof tips]}</p>
+        </div>
+      )}
+
+      <div className="mb-6">
+        <div className="flex justify-between mb-2">
+          {steps.map((s, i) => (
+            <button
+              key={s}
+              onClick={() => setStep(i)}
+              className={`text-center px-3 py-1 rounded ${i === step ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="h-2 bg-gray-200 rounded">
+          <div
+            className="h-full bg-blue-600 rounded transition-all duration-300 ease-in-out"
+            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {renderStepContent()}
+
+      <div className="flex justify-between mt-6">
+        <button
+          onClick={() => setStep(prev => Math.max(0, prev - 1))}
+          disabled={step === 0}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <button
+          onClick={() => setStep(prev => Math.min(steps.length - 1, prev + 1))}
+          disabled={step === steps.length - 1}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {step === steps.length - 1 ? 'Finish' : 'Next'}
+        </button>
+      </div>
+
+      <div className="mt-4 flex items-center text-sm text-gray-600">
+        <HelpCircle size={16} className="mr-2" />
+        <span>Need more help? Click the info icon for step-specific tips and best practices.</span>
+      </div>
+    </div>
+  );
+};
+
+export default EnhancedILOBuilderWithAI;
