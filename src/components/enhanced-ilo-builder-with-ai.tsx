@@ -1,5 +1,5 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
-import { HelpCircle, RefreshCw, Info, Copy, CheckCircle, Wand2 } from 'lucide-react';
+import { HelpCircle, RefreshCw, Copy, CheckCircle, Wand2, Lightbulb } from 'lucide-react';
 
 interface ILO {
   audience: string;
@@ -26,6 +26,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [enhancedILO, setEnhancedILO] = useState('');
   const iloRef = useRef<HTMLDivElement>(null);
+  const [customVerb, setCustomVerb] = useState('');
 
   const steps = ['Audience', 'Behavior', 'Condition', 'Degree', 'Review'];
   const levels: VerbLevel[] = ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
@@ -48,8 +49,28 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
       behavior: { 
         ...prev.behavior, 
         [field]: value,
-        verb: field === 'level' ? '' : prev.behavior.verb 
+        verb: field === 'level' ? '' : prev.behavior.verb // Reset verb when level changes
       } 
+    }));
+
+    if (field === 'verb') {
+      if (value === 'custom') {
+        setCustomVerb('');
+      } else {
+        setCustomVerb(''); // Reset custom verb when a predefined verb is selected
+      }
+    }
+  };
+
+  const handleCustomVerbChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCustomVerb(value);
+    setIlo(prev => ({
+      ...prev,
+      behavior: {
+        ...prev.behavior,
+        verb: 'custom' // Keep 'custom' selected in dropdown
+      }
     }));
   };
 
@@ -79,6 +100,17 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     Review: "Ensure your ILO is SMART: Specific, Measurable, Achievable, Relevant, and Time-bound. Each component should contribute to a clear, actionable learning outcome."
   };
 
+  const renderILOPreview = () => {
+    if (step === steps.length - 1) return null; // Don't show preview in review step
+    
+    return (
+      <div className="mt-4 p-3 bg-gray-100 rounded">
+        <h4 className="font-semibold mb-2">ILO Preview:</h4>
+        <p>{renderILO()}</p>
+      </div>
+    );
+  };
+
   const renderStepContent = () => {
     const commonClasses = "w-full p-2 border rounded mb-2 focus:border-blue-500 focus:ring focus:ring-blue-200";
     
@@ -92,10 +124,11 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               type="text"
               value={ilo.audience}
               onChange={(e) => handleInputChange('audience', e.target.value)}
-              placeholder="e.g., CHEM1010 students"
+              placeholder="e.g. CHEM1010 students"
               className={commonClasses}
               aria-label="Audience description"
             />
+            {renderILOPreview()}
           </div>
         );
       case 1:
@@ -125,16 +158,28 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
                 {verbs[ilo.behavior.level as VerbLevel].map(verb => (
                   <option key={verb} value={verb}>{verb}</option>
                 ))}
+                <option value="custom">Enter Your Own Verb</option>
               </select>
+            )}
+            {ilo.behavior.verb === 'custom' && (
+              <input
+                type="text"
+                value={customVerb}
+                onChange={handleCustomVerbChange}
+                placeholder="Enter your custom verb"
+                className={commonClasses}
+                aria-label="Custom verb"
+              />
             )}
             <input
               type="text"
               value={ilo.behavior.task}
               onChange={(e) => handleBehaviorChange('task', e.target.value)}
-              placeholder="e.g., the principles of stoichiometry in chemical reactions"
+              placeholder="e.g. the principles of stoichiometry in chemical reactions"
               className={commonClasses}
               aria-label="Specific task or knowledge"
             />
+            {renderILOPreview()}
           </div>
         );
       case 2:
@@ -146,7 +191,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               type="text"
               value={ilo.condition}
               onChange={(e) => handleInputChange('condition', e.target.value)}
-              placeholder="e.g., Using common software tools"
+              placeholder="e.g. Using common software tools"
               className={commonClasses}
               aria-label="Condition description"
             />
@@ -158,6 +203,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
                 ))}
               </ul>
             </div>
+            {renderILOPreview()}
           </div>
         );
       case 3:
@@ -169,7 +215,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               type="text"
               value={ilo.degree}
               onChange={(e) => handleInputChange('degree', e.target.value)}
-              placeholder="e.g., with at least 90% accuracy"
+              placeholder="e.g. with at least 90% accuracy"
               className={commonClasses}
               aria-label="Degree of performance"
             />
@@ -181,6 +227,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
                 ))}
               </ul>
             </div>
+            {renderILOPreview()}
           </div>
         );
       case 4:
@@ -221,7 +268,8 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   };
 
   const renderILO = () => {
-    return `${ilo.audience} will be able to ${ilo.behavior.verb} ${ilo.behavior.task} ${ilo.condition} ${ilo.degree}`.trim();
+    const verb = ilo.behavior.verb === 'custom' ? customVerb : ilo.behavior.verb;
+    return `${ilo.audience} will be able to ${verb} ${ilo.behavior.task} ${ilo.condition} ${ilo.degree}`.trim();
   };
 
   const copyToClipboard = () => {
@@ -250,18 +298,52 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     setEnhancedILO('');
   };
 
-  return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Tutorial ILO Builder (ABCD Model)</h2>
-        <div>
-          <button onClick={() => setShowTips(!showTips)} className="mr-2 text-blue-600 hover:text-blue-800">
-            <Info size={18} />
-          </button>
-          <button onClick={restart} className="flex items-center text-blue-600 hover:text-blue-800">
-            <RefreshCw size={18} className="mr-1" /> Restart
+  const renderNavigationButtons = () => {
+    if (step === steps.length - 1) {
+      // On the Review step
+      return (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={restart}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            <RefreshCw size={18} className="inline mr-2" />
+            Start Over
           </button>
         </div>
+      );
+    }
+
+    return (
+      <div className="flex justify-between mt-6">
+        <button
+          onClick={() => setStep(prev => Math.max(0, prev - 1))}
+          disabled={step === 0}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <button
+          onClick={() => setStep(prev => Math.min(steps.length - 1, prev + 1))}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          {step === steps.length - 2 ? 'Finish' : 'Next'}
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg relative">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Tutorial ILO Builder (ABCD Model)</h2>
+        <button 
+          onClick={() => setShowTips(!showTips)} 
+          className="text-yellow-500 hover:text-yellow-600"
+          aria-label="Show tips"
+        >
+          <Lightbulb size={24} />
+        </button>
       </div>
       
       <p className="mb-4 text-gray-600">
@@ -295,29 +377,12 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
           ></div>
         </div>
       </div>
-
       {renderStepContent()}
 
-      <div className="flex justify-between mt-6">
-        <button
-          onClick={() => setStep(prev => Math.max(0, prev - 1))}
-          disabled={step === 0}
-          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <button
-          onClick={() => setStep(prev => Math.min(steps.length - 1, prev + 1))}
-          disabled={step === steps.length - 1}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {step === steps.length - 1 ? 'Finish' : 'Next'}
-        </button>
-      </div>
+      {renderNavigationButtons()}
 
       <div className="mt-4 flex items-center text-sm text-gray-600">
-        <HelpCircle size={16} className="mr-2" />
-        <span>Need more help? Click the info icon for step-specific tips and best practices.</span>
+        <span>Need more help? Click the lightbulb icon for step-specific tips and best practices.</span>
       </div>
     </div>
   );
