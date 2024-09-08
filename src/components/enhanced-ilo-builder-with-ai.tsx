@@ -82,6 +82,20 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     return `${ilo.audience} will be able to ${ilo.behavior.verbAndTask} ${ilo.condition} ${ilo.degree}`.trim();
   };
 
+  const renderPreview = () => {
+    if (step < 4) { // Only show preview for the first 4 steps
+      return (
+        <div className="mt-4 p-4 bg-gray-100 rounded">
+          <h4 className="font-semibold mb-2">ILO Preview:</h4>
+          <p>
+            {ilo.audience} will be able to {ilo.behavior.verbAndTask} {ilo.condition} {ilo.degree}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const renderStepContent = () => {
     const commonClasses = "w-full p-2 border rounded mb-2 focus:border-blue-500 focus:ring focus:ring-blue-200";
     
@@ -318,7 +332,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
         </div>
       </div>
       {renderStepContent()}
-
+      {renderPreview()}
       {renderNavigationButtons()}
 
       <div className="mt-4 flex items-center text-sm text-gray-600">
