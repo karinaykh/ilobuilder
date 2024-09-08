@@ -1,5 +1,5 @@
-import React, { useState, useRef, ChangeEvent } from 'react';
-import { HelpCircle, RefreshCw, Copy, CheckCircle, Wand2, Lightbulb } from 'lucide-react';
+import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
+import { HelpCircle, RefreshCw, Copy, CheckCircle, Wand2, Lightbulb, Info } from 'lucide-react';
 
 interface ILO {
   audience: string;
@@ -7,6 +7,7 @@ interface ILO {
     level: string;
     verb: string;
     task: string;
+    verbAndTask: string;
   };
   condition: string;
   degree: string;
@@ -18,7 +19,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   const [step, setStep] = useState(0);
   const [ilo, setIlo] = useState<ILO>({
     audience: '',
-    behavior: { level: '', verb: '', task: '' },
+    behavior: { level: '', verb: '', task: '', verbAndTask: '' },
     condition: '',
     degree: ''
   });
@@ -26,17 +27,40 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [enhancedILO, setEnhancedILO] = useState('');
   const iloRef = useRef<HTMLDivElement>(null);
-  const [customVerb, setCustomVerb] = useState('');
 
   const steps = ['Audience', 'Behavior', 'Condition', 'Degree', 'Review'];
   const levels: VerbLevel[] = ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
-  const verbs: Record<VerbLevel, string[]> = {
-    Remembering: ['Define', 'List', 'Recall', 'Identify', 'Name', 'Recognize'],
-    Understanding: ['Explain', 'Describe', 'Discuss', 'Interpret', 'Summarize', 'Classify'],
-    Applying: ['Apply', 'Demonstrate', 'Use', 'Solve', 'Implement', 'Execute'],
-    Analyzing: ['Analyze', 'Compare', 'Differentiate', 'Examine', 'Categorize', 'Contrast'],
-    Evaluating: ['Evaluate', 'Judge', 'Justify', 'Critique', 'Assess', 'Recommend'],
-    Creating: ['Create', 'Design', 'Develop', 'Formulate', 'Propose', 'Construct']
+  const verbExamples: { [key in VerbLevel]: string } = {
+    Remembering: 'Define, List, Recall, Identify, Name, Recognize',
+    Understanding: 'Explain, Describe, Discuss, Interpret, Summarize, Classify',
+    Applying: 'Apply, Demonstrate, Use, Solve, Implement, Execute',
+    Analyzing: 'Analyze, Compare, Differentiate, Examine, Categorize, Contrast',
+    Evaluating: 'Evaluate, Judge, Justify, Critique, Assess, Recommend',
+    Creating: 'Create, Design, Develop, Formulate, Propose, Construct'
+  };
+
+  const guidingQuestions: { [key in VerbLevel]: string } = {
+    Remembering: "Do students need to recall specific information or facts?",
+    Understanding: "Should students demonstrate comprehension by explaining concepts in their own words?",
+    Applying: "Will students use learned information to solve problems in new situations?",
+    Analyzing: "Are students expected to break down information and explore relationships between concepts?",
+    Evaluating: "Should students make judgments about the value or quality of ideas or materials?",
+    Creating: "Will students synthesize information to produce original work or propose alternative solutions?"
+  };
+
+  const tips: { [key: string]: string | React.ReactNode } = {
+    Audience: "Specify the course code and be clear about the students' level. For example, 'CHEM1010 students' clearly identifies first-year chemistry students.",
+    Behavior: (
+      <ol className="list-decimal list-inside">
+        <li>Choose a cognitive level that matches your learning goals.</li>
+        <li>Select an action verb that aligns with the chosen level.</li>
+        <li>Specify the task or content students will engage with.</li>
+        <li>Ensure the behavior is observable and measurable.</li>
+      </ol>
+    ),
+    Condition: "Describe the specific circumstances or context in which the learning will be demonstrated. This often includes tools, resources, or settings.",
+    Degree: "Specify clear, achievable criteria that define successful performance. This could include accuracy, speed, quality, or quantity metrics.",
+    Review: "Ensure your ILO is SMART: Specific, Measurable, Achievable, Relevant, and Time-bound. Each component should contribute to a clear, actionable learning outcome."
   };
 
   const handleInputChange = (field: keyof ILO, value: string) => {
@@ -44,71 +68,18 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   };
 
   const handleBehaviorChange = (field: keyof ILO['behavior'], value: string) => {
-    setIlo(prev => ({ 
-      ...prev, 
+    setIlo(prev => ({
+      ...prev,
       behavior: { 
         ...prev.behavior, 
         [field]: value,
-        verb: field === 'level' ? '' : prev.behavior.verb // Reset verb when level changes
-      } 
-    }));
-
-    if (field === 'verb') {
-      if (value === 'custom') {
-        setCustomVerb('');
-      } else {
-        setCustomVerb(''); // Reset custom verb when a predefined verb is selected
-      }
-    }
-  };
-
-  const handleCustomVerbChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCustomVerb(value);
-    setIlo(prev => ({
-      ...prev,
-      behavior: {
-        ...prev.behavior,
-        verb: 'custom' // Keep 'custom' selected in dropdown
+        verbAndTask: field === 'verbAndTask' ? value : `${prev.behavior.verb} ${prev.behavior.task}`.trim()
       }
     }));
   };
 
-  const conditionExamples = [
-    "Using common software tools",
-    "Given a set of mathematical problems",
-    "When presented with a business case study",
-    "Using laboratory equipment",
-    "In a group project setting",
-    "With access to relevant research papers"
-  ];
-
-  const degreeExamples = [
-    "with at least 90% accuracy",
-    "creating at least 3 valid solutions",
-    "meeting all criteria on the provided rubric",
-    "within a 50-minute tutorial session",
-    "receiving positive peer feedback on clarity",
-    "demonstrating proficiency in at least 4 out of 5 attempts"
-  ];
-
-  const tips: { [key: string]: string } = {
-    Audience: "Specify the course code and be clear about the students' level. For example, 'CHEM1010 students' clearly identifies first-year chemistry students.",
-    Behavior: "Choose a verb that's observable and measurable. The verb should align with the chosen cognitive level from Bloom's Taxonomy.",
-    Condition: "Describe the specific circumstances or context in which the learning will be demonstrated. This often includes tools, resources, or settings.",
-    Degree: "Specify clear, achievable criteria that define successful performance. This could include accuracy, speed, quality, or quantity metrics.",
-    Review: "Ensure your ILO is SMART: Specific, Measurable, Achievable, Relevant, and Time-bound. Each component should contribute to a clear, actionable learning outcome."
-  };
-
-  const renderILOPreview = () => {
-    if (step === steps.length - 1) return null; // Don't show preview in review step
-    
-    return (
-      <div className="mt-4 p-3 bg-gray-100 rounded">
-        <h4 className="font-semibold mb-2">ILO Preview:</h4>
-        <p>{renderILO()}</p>
-      </div>
-    );
+  const renderILO = () => {
+    return `${ilo.audience} will be able to ${ilo.behavior.verbAndTask} ${ilo.condition} ${ilo.degree}`.trim();
   };
 
   const renderStepContent = () => {
@@ -128,65 +99,57 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               className={commonClasses}
               aria-label="Audience description"
             />
-            {renderILOPreview()}
           </div>
         );
       case 1:
         return (
           <div>
             <h3 className="text-lg font-semibold mb-2">Behavior (B)</h3>
-            <p className="mb-2">Select the cognitive level based on Bloom's Taxonomy, then choose a specific verb that describes what the students should be able to do.</p>
-            <select
-              value={ilo.behavior.level}
-              onChange={(e) => handleBehaviorChange('level', e.target.value)}
-              className={commonClasses}
-              aria-label="Cognitive level"
-            >
-              <option value="">Select a cognitive level</option>
-              {levels.map(level => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
-            {ilo.behavior.level && (
-              <select
-                value={ilo.behavior.verb}
-                onChange={(e) => handleBehaviorChange('verb', e.target.value)}
+            <div className="mb-4">
+              <label className="block mb-2 font-bold">Step 1: Select the Cognitive Level</label>
+              <p className="text-sm text-gray-600 mb-2">Choose the level of cognitive complexity you expect from your students:</p>
+              <select 
+                value={ilo.behavior.level} 
+                onChange={(e) => handleBehaviorChange('level', e.target.value)}
                 className={commonClasses}
-                aria-label="Action verb"
               >
-                <option value="">Select a verb</option>
-                {verbs[ilo.behavior.level as VerbLevel].map(verb => (
-                  <option key={verb} value={verb}>{verb}</option>
+                <option value="">Select a level</option>
+                {levels.map(level => (
+                  <option key={level} value={level}>{level}</option>
                 ))}
-                <option value="custom">Enter Your Own Verb</option>
               </select>
+              {ilo.behavior.level && (
+                <div className="mt-2 p-3 bg-yellow-50 rounded">
+                  <p className="text-sm font-semibold flex items-center">
+                    <Info size={16} className="mr-2" />
+                    Guiding Question for {ilo.behavior.level}:
+                  </p>
+                  <p className="text-sm italic">{guidingQuestions[ilo.behavior.level as VerbLevel]}</p>
+                </div>
+              )}
+            </div>
+
+            {ilo.behavior.level && (
+              <div className="mb-4">
+                <label className="block mb-2 font-bold">Step 2: Choose an Action Verb and Specify the Task</label>
+                <p className="text-sm text-gray-600 mb-2">Select a verb that aligns with the {ilo.behavior.level} level and describe the specific task or content:</p>
+                <p className="text-sm font-italic mb-2">Example verbs for {ilo.behavior.level}: {verbExamples[ilo.behavior.level as VerbLevel]}</p>
+                <input
+                  type="text"
+                  value={ilo.behavior.verbAndTask}
+                  onChange={(e) => handleBehaviorChange('verbAndTask', e.target.value)}
+                  placeholder="e.g., analyze the environmental impact of renewable energy sources"
+                  className={commonClasses}
+                />
+              </div>
             )}
-            {ilo.behavior.verb === 'custom' && (
-              <input
-                type="text"
-                value={customVerb}
-                onChange={handleCustomVerbChange}
-                placeholder="Enter your custom verb"
-                className={commonClasses}
-                aria-label="Custom verb"
-              />
-            )}
-            <input
-              type="text"
-              value={ilo.behavior.task}
-              onChange={(e) => handleBehaviorChange('task', e.target.value)}
-              placeholder="e.g. the principles of stoichiometry in chemical reactions"
-              className={commonClasses}
-              aria-label="Specific task or knowledge"
-            />
-            {renderILOPreview()}
           </div>
         );
       case 2:
         return (
           <div>
             <h3 className="text-lg font-semibold mb-2">Condition (C)</h3>
-            <p className="mb-2">Describe the conditions under which the behavior should be performed. Consider tools, resources, or contexts relevant to the tutorial.</p>
+            <p className="mb-2">Describe the conditions under which the behavior should be performed.</p>
             <input
               type="text"
               value={ilo.condition}
@@ -195,22 +158,13 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               className={commonClasses}
               aria-label="Condition description"
             />
-            <div className="text-sm text-gray-600">
-              <p className="font-semibold">Examples:</p>
-              <ul className="list-disc pl-5">
-                {conditionExamples.map((example, index) => (
-                  <li key={index}>{example}</li>
-                ))}
-              </ul>
-            </div>
-            {renderILOPreview()}
           </div>
         );
       case 3:
         return (
           <div>
             <h3 className="text-lg font-semibold mb-2">Degree (D)</h3>
-            <p className="mb-2">Specify the criteria for acceptable performance. This could involve accuracy, time limits, or quality standards.</p>
+            <p className="mb-2">Specify the criteria for acceptable performance.</p>
             <input
               type="text"
               value={ilo.degree}
@@ -219,15 +173,6 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               className={commonClasses}
               aria-label="Degree of performance"
             />
-            <div className="text-sm text-gray-600">
-              <p className="font-semibold">Examples:</p>
-              <ul className="list-disc pl-5">
-                {degreeExamples.map((example, index) => (
-                  <li key={index}>{example}</li>
-                ))}
-              </ul>
-            </div>
-            {renderILOPreview()}
           </div>
         );
       case 4:
@@ -267,11 +212,6 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     }
   };
 
-  const renderILO = () => {
-    const verb = ilo.behavior.verb === 'custom' ? customVerb : ilo.behavior.verb;
-    return `${ilo.audience} will be able to ${verb} ${ilo.behavior.task} ${ilo.condition} ${ilo.degree}`.trim();
-  };
-
   const copyToClipboard = () => {
     if (iloRef.current) {
       navigator.clipboard.writeText(iloRef.current.innerText || '').then(() => {
@@ -291,7 +231,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     setStep(0);
     setIlo({
       audience: '',
-      behavior: { level: '', verb: '', task: '' },
+      behavior: { level: '', verb: '', task: '', verbAndTask: '' },
       condition: '',
       degree: ''
     });
@@ -354,7 +294,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
       {showTips && (
         <div className="mb-4 p-4 bg-blue-50 rounded">
           <h3 className="font-bold mb-2">Tips for this step:</h3>
-          <p>{tips[steps[step] as keyof typeof tips]}</p>
+          {tips[steps[step]]}
         </div>
       )}
 
