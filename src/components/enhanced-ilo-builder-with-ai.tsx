@@ -235,10 +235,27 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     }
   };
 
-  const enhanceWithAI = () => {
-    // Placeholder for AI enhancement - replace with actual API call
+  const enhanceWithAI = async () => {
     const currentILO = renderILO();
-    setEnhancedILO(`Enhanced version: ${currentILO} (This would be replaced with actual AI-generated content)`);
+    try {
+      const response = await fetch('/enhance-ilo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ilo: currentILO }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to enhance ILO');
+      }
+      
+      const data = await response.json();
+      setEnhancedILO(data.enhancedILO);
+    } catch (error) {
+      console.error('Error enhancing ILO:', error);
+      setEnhancedILO('An error occurred while enhancing the ILO. Please try again.');
+    }
   };
 
   const restart = () => {
