@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
-import { HelpCircle, RefreshCw, Copy, CheckCircle, Wand2, Lightbulb, Info } from 'lucide-react';
+import { HelpCircle, RefreshCw, Copy, CheckCircle, Wand2, Lightbulb, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ILO {
   audience: string;
@@ -16,7 +16,7 @@ interface ILO {
 type VerbLevel = 'Remembering' | 'Understanding' | 'Applying' | 'Analyzing' | 'Evaluating' | 'Creating';
 
 const EnhancedILOBuilderWithAI: React.FC = () => {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<number>(0);
   const [ilo, setIlo] = useState<ILO>({
     audience: '',
     behavior: { level: '', verb: '', task: '', verbAndTask: '' },
@@ -25,8 +25,10 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   });
   const [showTips, setShowTips] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [enhancedILO, setEnhancedILO] = useState('');
+  const [enhancedILO, setEnhancedILO] = useState<{ title: string; content: string }[]>([]);
   const iloRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasEnhanced, setHasEnhanced] = useState(false);
 
   const steps = ['Audience', 'Behavior', 'Condition', 'Degree', 'Review'];
   const levels: VerbLevel[] = ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
@@ -96,7 +98,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     return null;
   };
 
-  const renderStepContent = () => {
+  const renderStepContent = (): JSX.Element | null => {
     const commonClasses = "w-full p-2 border rounded mb-2 focus:border-blue-500 focus:ring focus:ring-blue-200";
     
     switch (step) {
@@ -207,16 +209,26 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               </button>
               <button 
                 onClick={enhanceWithAI} 
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                disabled={isLoading || hasEnhanced}
+                className={`bg-green-500 text-white px-4 py-2 rounded flex items-center ${
+                  (isLoading || hasEnhanced) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-600'
+                }`}
               >
                 <Wand2 size={18} className="mr-2" />
-                Enhance with AI
+                {hasEnhanced ? 'Enhanced' : 'Enhance with AI'}
               </button>
             </div>
-            {enhancedILO && (
-              <div>
-                <h4 className="font-semibold mb-2">AI-Enhanced ILO:</h4>
-                <p className="p-4 bg-green-50 rounded">{enhancedILO}</p>
+            {hasEnhanced && enhancedILO.length > 0 && (
+              <div className="mt-6 bg-green-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-lg mb-4 text-center">AI-Enhanced ILO:</h4>
+                <div className="text-left">
+                  {enhancedILO.map((section, index) => (
+                    <div key={index} className="mb-4">
+                      <h5 className="font-bold">{section.title}</h5>
+                      <p className="whitespace-pre-line">{section.content}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -235,9 +247,43 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     }
   };
 
+  const loadingPhrases = [
+    "Brewing some AI magic...",
+    "Channeling the wisdom of a thousand educators...",
+    "Decoding the secrets of perfect learning objectives...",
+    "Consulting with virtual pedagogical experts...",
+    "Analyzing countless successful ILOs...",
+    "Optimizing your learning objectives...",
+    "Enhancing your ILO with cutting-edge AI...",
+    "Crafting the perfect blend of words...",
+  ];
+
+  const LoadingOverlay: React.FC = () => {
+    const [phrase, setPhrase] = useState(loadingPhrases[0]);
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setPhrase(loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)]);
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }, []);
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-lg font-semibold text-gray-800">{phrase}</p>
+        </div>
+      </div>
+    );
+  };
+
   const enhanceWithAI = async () => {
-    const currentILO = renderILO();
+    if (hasEnhanced) return;
+    setIsLoading(true);
     try {
+      const currentILO = renderILO();
       const response = await fetch('/enhance-ilo', {
         method: 'POST',
         headers: {
@@ -249,12 +295,17 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
       if (!response.ok) {
         throw new Error('Failed to enhance ILO');
       }
-      
       const data = await response.json();
-      setEnhancedILO(data.enhancedILO);
+      const sections = data.enhancedILO.split('\n\n').map((section: string) => {
+        const [title, ...content] = section.split('\n');
+        return { title: title.trim(), content: content.join('\n').trim() };
+      });
+      setEnhancedILO(sections);
+      setHasEnhanced(true);
     } catch (error) {
-      console.error('Error enhancing ILO:', error);
-      setEnhancedILO('An error occurred while enhancing the ILO. Please try again.');
+      console.error('Error enhancing ILO with AI:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -266,7 +317,8 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
       condition: '',
       degree: ''
     });
-    setEnhancedILO('');
+    setEnhancedILO([]);
+    setHasEnhanced(false);
   };
 
   const renderNavigationButtons = () => {
@@ -305,7 +357,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg relative">
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg relative fixed inset-0 overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Tutorial ILO Builder (ABCD Model)</h2>
         <button 
@@ -321,13 +373,6 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
         Create clear and effective Intended Learning Outcomes (ILOs) for your undergraduate tutorials using the ABCD model: 
         Audience, Behavior, Condition, and Degree. This tool is based on Bloom's Taxonomy to help you craft precise and measurable learning outcomes.
       </p>
-
-      {showTips && (
-        <div className="mb-4 p-4 bg-blue-50 rounded">
-          <h3 className="font-bold mb-2">Tips for this step:</h3>
-          {tips[steps[step]]}
-        </div>
-      )}
 
       <div className="mb-6">
         <div className="flex justify-between mb-2">
@@ -348,6 +393,14 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
           ></div>
         </div>
       </div>
+
+      {showTips && (
+        <div className="mb-4 p-4 bg-blue-50 rounded">
+          <h3 className="font-bold mb-2">Tips for this step:</h3>
+          {tips[steps[step]]}
+        </div>
+      )}
+
       {renderStepContent()}
       {renderPreview()}
       {renderNavigationButtons()}
@@ -355,6 +408,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
       <div className="mt-4 flex items-center text-sm text-gray-600">
         <span>Need more help? Click the lightbulb icon for step-specific tips and best practices.</span>
       </div>
+      {isLoading && <LoadingOverlay />}
     </div>
   );
 };

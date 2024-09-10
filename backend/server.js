@@ -32,10 +32,30 @@ app.post('/enhance-ilo', async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert in educational design, specializing in creating effective Intended Learning Outcomes (ILOs). Your task is to enhance the given ILO to make it more specific, measurable, achievable, relevant, and time-bound (SMART). Provide constructive feedback and suggestions for improvement." },
-        { role: "user", content: `Please enhance the following ILO: ${ilo}` }
+        { role: "system", content: "You are an expert in educational design, specializing in creating effective Intended Learning Outcomes (ILOs) using the ABCD (Audience, Behavior, Condition, Degree) method. Your task is to provide constructive feedback on given ILOs and suggest improvements." },
+        { role: "user", content: `Provide feedback and enhancement for the following ILO: "${ilo}"
+     
+    Please structure your response as follows:
+    1. Feedback on original ILO:
+       Measurable: [Comment on how well the outcome can be assessed]
+       Specific: [Evaluate how clearly the ILO states what students should do]
+       Achievable: [Assess if the outcome is realistic for a tutorial session]
+       Observable: [Comment on how the learning can be demonstrated]
+       Appropriate Level: [Evaluate the cognitive level using Bloom's Taxonomy]
+     
+    2. Enhanced ILO: [Provide an improved version of the ILO]
+     
+    3. Explanation of changes:
+       A (Audience): [Any changes to the audience]
+       B (Behavior): [Changes to the action verb and task]
+       C (Condition): [Added or modified conditions]
+       D (Degree): [How measurability was improved]
+     
+    4. Closing thought: [Add a brief statement encouraging critical evaluation of the AI-generated ILO and reminding not to use it directly without consideration]
+     
+    Limit your response to 250 words.` }
       ],
-      max_tokens: 300
+      max_tokens: 400
     });
 
     console.log('Azure OpenAI API Response:', completion);

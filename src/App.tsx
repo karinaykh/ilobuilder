@@ -5,7 +5,7 @@ import './App.css';
 
 function App() {
   return (
-    <div className="App">
+    <div className="App min-h-screen flex justify-center bg-gray-100 pt-8">
       <EnhancedILObuilder/>
 
     </div>
