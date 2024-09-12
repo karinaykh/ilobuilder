@@ -28,35 +28,43 @@ app.post('/enhance-ilo', async (req, res) => {
       throw new Error('No ILO provided');
     }
 
-    console.log('Sending request to Azure OpenAI API...');
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are an expert in educational design, specializing in creating effective Intended Learning Outcomes (ILOs) using the ABCD (Audience, Behavior, Condition, Degree) method. Your task is to provide constructive feedback on given ILOs and suggest improvements." },
-        { role: "user", content: `Provide feedback and enhancement for the following ILO: "${ilo}"
-     
-    Please structure your response as follows:
-    1. Feedback on original ILO:
-       Measurable: [Comment on how well the outcome can be assessed]
-       Specific: [Evaluate how clearly the ILO states what students should do]
-       Achievable: [Assess if the outcome is realistic for a tutorial session]
-       Observable: [Comment on how the learning can be demonstrated]
-       Appropriate Level: [Evaluate the cognitive level using Bloom's Taxonomy]
-     
-    2. Enhanced ILO: [Provide an improved version of the ILO]
-     
-    3. Explanation of changes:
-       A (Audience): [Any changes to the audience]
-       B (Behavior): [Changes to the action verb and task]
-       C (Condition): [Added or modified conditions]
-       D (Degree): [How measurability was improved]
-     
-    4. Closing thought: [Add a brief statement encouraging critical evaluation of the AI-generated ILO and reminding not to use it directly without consideration]
-     
-    Limit your response to 250 words.` }
-      ],
-      max_tokens: 400
-    });
+console.log('Sending request to Azure OpenAI API...');
+const completion = await openai.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [
+    { role: "system", content: "You are an expert in educational design, specializing in creating effective Intended Learning Outcomes (ILOs) for undergraduate tutorials using the ABCD (Audience, Behavior, Condition, Degree) method. Your task is to provide constructive feedback on given ILOs and suggest improvements, ensuring they meet key criteria for effective tutorial ILOs." },
+    { role: "user", content: `Provide feedback and enhancement for the following ILO: "${ilo}"
+
+Use markdown formatting for headers (###) and bullet points (-).
+For complete ILOs, structure your response as follows:
+1. Feedback on original ILO:
+   Positive aspects: [Highlight what's good about the ILO, even if it's just the attempt or a particular element]
+   Specific: [Evaluate how clearly the ILO states what students should do. Is it tailored to the tutorial content? Does it use one clear action verb?]
+   Measurable: [Comment on how well the outcome can be assessed within the tutorial setting. Are the criteria for success clear?]
+   Active: [Assess how the ILO encourages student engagement and participation. Does it promote hands-on learning or critical thinking?]
+   Relevant: [Evaluate the connection to course goals and real-world applications. Is it meaningful for the students' learning journey?]
+   Time-bound: [Comment on whether the outcome is achievable in a single tutorial session. Is the scope appropriate?]
+
+2. Enhanced ILO: [Provide an improved version of the ILO, ensuring it's specific, measurable, active, relevant, and achievable in a single tutorial session. Use one clear action verb for the behavior.]
+
+3. Explanation of changes:
+   A (Audience): [Any changes to make the audience more specific and appropriate]
+   B (Behavior): [Changes to the action verb and task to improve clarity, engagement, and measurability]
+   C (Condition): [Added or modified conditions to enhance relevance, context, and achievability]
+   D (Degree): [How the criteria for success and measurability were improved]
+
+4. Closing thought: [Encourage critical evaluation of the AI-generated ILO, reminding users to adapt it to their specific context and student needs]
+
+For incomplete or vague ILOs, provide:
+1. Brief guidance on creating a complete ILO using the ABCD method
+2. A concise example of a SMART ILO tailored for tutorial settings
+3. Encouragement to provide more specific details for a thorough analysis
+
+Limit your response to 250 words, focusing on the most critical feedback and improvements.`
+    }
+  ],
+  max_tokens: 400
+});
 
     console.log('Azure OpenAI API Response:', completion);
 

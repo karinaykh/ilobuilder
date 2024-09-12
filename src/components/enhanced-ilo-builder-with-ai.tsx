@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
-import { HelpCircle, RefreshCw, Copy, CheckCircle, Wand2, Lightbulb, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import React, { useState, useRef, useEffect } from 'react';
+import { HelpCircle, RefreshCw, Copy, CheckCircle, Wand2, Lightbulb,ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ILO {
   audience: string;
@@ -15,6 +16,11 @@ interface ILO {
 
 type VerbLevel = 'Remembering' | 'Understanding' | 'Applying' | 'Analyzing' | 'Evaluating' | 'Creating';
 
+interface ILOSection {
+  title: string;
+  content: string | string[];
+}
+
 const EnhancedILOBuilderWithAI: React.FC = () => {
   const [step, setStep] = useState<number>(0);
   const [ilo, setIlo] = useState<ILO>({
@@ -25,7 +31,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   });
   const [showTips, setShowTips] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [enhancedILO, setEnhancedILO] = useState<{ title: string; content: string }[]>([]);
+  const [enhancedILO, setEnhancedILO] = useState<ILOSection[]>([]);
   const iloRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasEnhanced, setHasEnhanced] = useState(false);
@@ -35,34 +41,117 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   const verbExamples: { [key in VerbLevel]: string } = {
     Remembering: 'Define, List, Recall, Identify, Name, Recognize',
     Understanding: 'Explain, Describe, Discuss, Interpret, Summarize, Classify',
-    Applying: 'Apply, Demonstrate, Use, Solve, Implement, Execute',
-    Analyzing: 'Analyze, Compare, Differentiate, Examine, Categorize, Contrast',
-    Evaluating: 'Evaluate, Judge, Justify, Critique, Assess, Recommend',
-    Creating: 'Create, Design, Develop, Formulate, Propose, Construct'
+    Applying: 'Apply, Implement, Solve, Demonstrate, Calculate, Modify',
+    Analyzing: 'Analyze, Differentiate, Compare, Contrast, Examine, Categorize',
+    Evaluating: 'Evaluate, Assess, Critique, Judge, Justify, Recommend',
+    Creating: 'Design, Construct, Develop, Formulate, Propose, Synthesize'
   };
 
-  const guidingQuestions: { [key in VerbLevel]: string } = {
-    Remembering: "Do students need to recall specific information or facts?",
-    Understanding: "Should students demonstrate comprehension by explaining concepts in their own words?",
-    Applying: "Will students use learned information to solve problems in new situations?",
-    Analyzing: "Are students expected to break down information and explore relationships between concepts?",
-    Evaluating: "Should students make judgments about the value or quality of ideas or materials?",
-    Creating: "Will students synthesize information to produce original work or propose alternative solutions?"
+  const guidingQuestions: { [key in VerbLevel]: React.ReactNode } = {
+    Remembering: (
+      <div className="flex items-start text-sm text-gray-600">
+        <Lightbulb size={16} className="mr-2 mt-1 flex-shrink-0 text-yellow-500" />
+        <div className="text-left">
+          <p>Do students need to recall or recognize specific information?</p>
+          <p className="mt-1">Example: <span className="italic">define key terms related to cellular respiration</span></p>
+        </div>
+      </div>
+    ),
+    Understanding: (
+      <div className="flex items-start text-sm text-gray-600">
+        <Lightbulb size={16} className="mr-2 mt-1 flex-shrink-0 text-yellow-500" />
+        <div className="text-left">
+          <p>Should students demonstrate comprehension by explaining or interpreting concepts?</p>
+          <p className="mt-1">Example: <span className="italic">explain the process of photosynthesis in their own words</span></p>
+        </div>
+      </div>
+    ),
+    Applying: (
+      <div className="flex items-start text-sm text-gray-600">
+        <Lightbulb size={16} className="mr-2 mt-1 flex-shrink-0 text-yellow-500" />
+        <div className="text-left">
+          <p>How will students use concepts or skills to address new situations or problems?</p>
+          <p className="mt-1">Example: <span className="italic">apply thermodynamic principles to solve real-world engineering problems</span></p>
+        </div>
+      </div>
+    ),
+    Analyzing: (
+      <div className="flex items-start text-sm text-gray-600">
+        <Lightbulb size={16} className="mr-2 mt-1 flex-shrink-0 text-yellow-500" />
+        <div className="text-left">
+          <p>How will students break down information and explore relationships between concepts?</p>
+          <p className="mt-1">Example: <span className="italic">analyze the factors influencing gene expression in eukaryotic cells</span></p>
+        </div>
+      </div>
+    ),
+    Evaluating: (
+      <div className="flex items-start text-sm text-gray-600">
+        <Lightbulb size={16} className="mr-2 mt-1 flex-shrink-0 text-yellow-500" />
+        <div className="text-left">
+          <p>How will students make judgments or assessments based on criteria and standards?</p>
+          <p className="mt-1">Example: <span className="italic">evaluate the effectiveness of different statistical methods for analyzing experimental data</span></p>
+        </div>
+      </div>
+    ),
+    Creating: (
+      <div className="flex items-start text-sm text-gray-600">
+        <Lightbulb size={16} className="mr-2 mt-1 flex-shrink-0 text-yellow-500" />
+        <div className="text-left">
+          <p>How will students combine elements to create a novel product or perspective?</p>
+          <p className="mt-1">Example: <span className="italic">design an experimental protocol to test a given hypothesis about enzyme kinetics</span></p>
+        </div>
+      </div>
+    )
   };
 
   const tips: { [key: string]: string | React.ReactNode } = {
-    Audience: "Specify the course code and be clear about the students' level. For example, 'CHEM1010 students' clearly identifies first-year chemistry students.",
-    Behavior: (
-      <ol className="list-decimal list-inside">
-        <li>Choose a cognitive level that matches your learning goals.</li>
-        <li>Select an action verb that aligns with the chosen level.</li>
-        <li>Specify the task or content students will engage with.</li>
-        <li>Ensure the behavior is observable and measurable.</li>
-      </ol>
+    Audience: (
+      <>
+        <p className="text-left">Specify your undergraduate students, including the course code. Be precise about who will achieve this outcome.</p>
+        <p className="text-left mt-2">Example: <span className="italic">"MATH1012 students"</span></p>
+      </>
     ),
-    Condition: "Describe the specific circumstances or context in which the learning will be demonstrated. This often includes tools, resources, or settings.",
-    Degree: "Specify clear, achievable criteria that define successful performance. This could include accuracy, speed, quality, or quantity metrics.",
-    Review: "Ensure your ILO is SMART: Specific, Measurable, Achievable, Relevant, and Time-bound. Each component should contribute to a clear, actionable learning outcome."
+    Behavior: (
+      <>
+        <p className="text-left">To define the behavior:</p>
+        <ol className="list-decimal list-inside mb-4 text-left">
+          <li>Select the cognitive level that best aligns with your tutorial objectives.</li>
+          <li>Choose an appropriate verb from that level.</li>
+          <li>Clearly describe the specific task, content, or skill students will engage with.</li>
+        </ol>
+        <p className="text-left">Example: <span className="italic">compute limits of complex functions</span></p>
+      </>
+    ),
+    Condition: (
+      <>
+        <p className="text-left">Describe the context or circumstances under which students will demonstrate the behavior. Consider the resources or constraints typical in a tutorial setting.</p>
+        <p className="text-left mt-2">Example: <span className="italic">"given a set of practice problems and a formula sheet"</span></p>
+      </>
+    ),
+    Degree: (
+      <>
+        <p className="text-left">Define the criteria for acceptable performance. This should be measurable and achievable within a single tutorial session.</p>
+        <p className="text-left mt-2">Example: <span className="italic">"with at least 80% accuracy in their solutions"</span></p>
+      </>
+    ),
+    Review: (
+      <>
+        <p className="text-left mb-2">
+          As a graduate teaching assistant, your goal is to create an ILO that guides a focused, achievable learning experience within a single undergraduate tutorial session. Use our SMART criteria to evaluate and refine your ILO:
+        </p>
+        <ul className="list-disc list-inside text-left mb-4">
+          <li><strong>S</strong>pecific to your tutorial content and student-centered</li>
+          <li><strong>M</strong>easurable within the tutorial setting</li>
+          <li><strong>A</strong>ctive, encouraging student engagement</li>
+          <li><strong>R</strong>elevant to course goals and real-world applications</li>
+          <li><strong>T</strong>ime-bound, achievable in a single session</li>
+        </ul>
+        <p className="text-left mb-2">Example of a Well-Crafted Tutorial ILO:</p>
+        <p className="text-left italic">
+          "By the end of this tutorial session, MATH1012 students will be able to compute limits of complex functions, given a set of practice problems and a formula sheet, with at least 80% accuracy in their solutions."
+        </p>
+      </>
+    )
   };
 
   const handleInputChange = (field: keyof ILO, value: string) => {
@@ -81,7 +170,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
   };
 
   const renderILO = () => {
-    return `${ilo.audience} will be able to ${ilo.behavior.verbAndTask} ${ilo.condition} ${ilo.degree}`.trim();
+    return `By the end of this tutorial, ${ilo.audience} will be able to ${ilo.behavior.verbAndTask} ${ilo.condition} ${ilo.degree}`.trim();
   };
 
   const renderPreview = () => {
@@ -90,7 +179,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
         <div className="mt-4 p-4 bg-gray-100 rounded">
           <h4 className="font-semibold mb-2">ILO Preview:</h4>
           <p>
-            {ilo.audience} will be able to {ilo.behavior.verbAndTask} {ilo.condition} {ilo.degree}
+            By the end of this tutorial, {ilo.audience} will be able to {ilo.behavior.verbAndTask} {ilo.condition} {ilo.degree}
           </p>
         </div>
       );
@@ -106,7 +195,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
         return (
           <div>
             <h3 className="text-lg font-semibold mb-2">Audience (A)</h3>
-            <p className="mb-2">Specify the students you'll be teaching, including the course code.</p>
+            <p className="mb-2">Identify the specific group of students for your tutorial session.</p>
             <input
               type="text"
               value={ilo.audience}
@@ -134,27 +223,24 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
                   <option key={level} value={level}>{level}</option>
                 ))}
               </select>
-              {ilo.behavior.level && (
-                <div className="mt-2 p-3 bg-yellow-50 rounded">
-                  <p className="text-sm font-semibold flex items-center">
-                    <Info size={16} className="mr-2" />
-                    Guiding Question for {ilo.behavior.level}:
-                  </p>
-                  <p className="text-sm italic">{guidingQuestions[ilo.behavior.level as VerbLevel]}</p>
-                </div>
-              )}
             </div>
 
             {ilo.behavior.level && (
               <div className="mb-4">
                 <label className="block mb-2 font-bold">Step 2: Choose an Action Verb and Specify the Task</label>
                 <p className="text-sm text-gray-600 mb-2">Select a verb that aligns with the {ilo.behavior.level} level and describe the specific task or content:</p>
+                
                 <p className="text-sm font-italic mb-2">Example verbs for {ilo.behavior.level}: {verbExamples[ilo.behavior.level as VerbLevel]}</p>
+                
+                <div className="mt-2 p-3 bg-yellow-50 rounded mb-4 text-left">
+                  {guidingQuestions[ilo.behavior.level as VerbLevel]}
+                </div>
+                
                 <input
                   type="text"
                   value={ilo.behavior.verbAndTask}
                   onChange={(e) => handleBehaviorChange('verbAndTask', e.target.value)}
-                  placeholder="e.g., analyze the environmental impact of renewable energy sources"
+                  placeholder="e.g., apply chemical principles to solve environmental problems"
                   className={commonClasses}
                 />
               </div>
@@ -165,7 +251,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
         return (
           <div>
             <h3 className="text-lg font-semibold mb-2">Condition (C)</h3>
-            <p className="mb-2">Describe the conditions under which the behavior should be performed.</p>
+            <p className="mb-2">Specify any tools, resources, or situations relevant to your tutorial task.</p>
             <input
               type="text"
               value={ilo.condition}
@@ -222,10 +308,12 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
               <div className="mt-6 bg-green-50 p-4 rounded-lg">
                 <h4 className="font-semibold text-lg mb-4 text-center">AI-Enhanced ILO:</h4>
                 <div className="text-left">
-                  {enhancedILO.map((section, index) => (
+                  {enhancedILO.map((section: ILOSection, index: number) => (
                     <div key={index} className="mb-4">
-                      <h5 className="font-bold">{section.title}</h5>
-                      <p className="whitespace-pre-line">{section.content}</p>
+                      <h5 className="font-semibold text-base">{section.title.replace(/^###\s*/, '')}</h5>
+                      <ReactMarkdown className="prose prose-sm max-w-none">
+                        {renderContent(section.content)}
+                      </ReactMarkdown>
                     </div>
                   ))}
                 </div>
@@ -263,7 +351,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
 
     useEffect(() => {
       const interval = setInterval(() => {
-        setPhrase(loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)]);
+                setPhrase(loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)]);
       }, 3000);
 
       return () => clearInterval(interval);
@@ -296,7 +384,7 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
         throw new Error('Failed to enhance ILO');
       }
       const data = await response.json();
-      const sections = data.enhancedILO.split('\n\n').map((section: string) => {
+      const sections = data.enhancedILO.split(/\n(?=###)/).map((section: string) => {
         const [title, ...content] = section.split('\n');
         return { title: title.trim(), content: content.join('\n').trim() };
       });
@@ -307,6 +395,13 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const renderContent = (content: string | string[]) => {
+    if (Array.isArray(content)) {
+      return content.join('\n');
+    }
+    return content;
   };
 
   const restart = () => {
@@ -358,20 +453,22 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg relative fixed inset-0 overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Tutorial ILO Builder (ABCD Model)</h2>
-        <button 
-          onClick={() => setShowTips(!showTips)} 
-          className="text-yellow-500 hover:text-yellow-600"
-          aria-label="Show tips"
-        >
-          <Lightbulb size={24} />
-        </button>
+      <div className="grid grid-cols-3 items-center mb-4">
+        <div></div> {/* Empty column for spacing */}
+        <h2 className="text-center text-2xl font-bold">Smart ILO Builder</h2>
+        <div className="justify-self-end">
+          <button 
+            onClick={() => setShowTips(!showTips)} 
+            className="text-yellow-500 hover:text-yellow-600"
+            aria-label="Show tips"
+          >
+            <Lightbulb size={24} />
+          </button>
+        </div>
       </div>
       
-      <p className="mb-4 text-gray-600">
-        Create clear and effective Intended Learning Outcomes (ILOs) for your undergraduate tutorials using the ABCD model: 
-        Audience, Behavior, Condition, and Degree. This tool is based on Bloom's Taxonomy to help you craft precise and measurable learning outcomes.
+      <p className="mb-4 text-gray-600 text-left">
+        Craft precise, actionable Intended Learning Outcomes (ILOs) for your undergraduate tutorials using the ABCD method: Audience, Behavior, Condition, and Degree. This tool blends Bloom's Taxonomy with AI assistance to help you create clear, measurable outcomes aligned with your tutorial goals. Follow the steps to design an ILO that guides learning and enables effective assessment. Once complete, use our AI feature to refine and enhance your ILO, ensuring it meets best educational practices.
       </p>
 
       <div className="mb-6">
@@ -395,8 +492,11 @@ const EnhancedILOBuilderWithAI: React.FC = () => {
       </div>
 
       {showTips && (
-        <div className="mb-4 p-4 bg-blue-50 rounded">
-          <h3 className="font-bold mb-2">Tips for this step:</h3>
+        <div className="mb-4 p-4 bg-yellow-50 rounded">
+          <h3 className="text-left font-bold mb-2 flex items-center">
+            <Lightbulb size={20} className="mr-2 text-yellow-500" />
+            Tips for this step:
+          </h3>
           {tips[steps[step]]}
         </div>
       )}
